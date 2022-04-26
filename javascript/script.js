@@ -63,39 +63,76 @@ $(document).ready(function () {
     $('.modal-backdrop').remove();
   });
 
-  $("body").on("click", ".delete-employee", function () {
-    id = $(this).parent("td").data("id");
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].id == id) {
-        data.splice(i, 1);
-        break;
-      }
-    }
-    displayEmployeeList();
-  });
+  function getData() {
+    $.ajax({
+        method: "GET",
+        url: `${defaultPath}/employees?page=${parseInt(localStorage.getItem("currentPage"))}&size=${5}`,
+        dataType: "json",
+        contentType: "application/json",
+        
+    })
+        .done(function (msg) {
+            data = msg['_embedded']['employees'];
+            totalPages = msg['page']['totalPages'];
 
-  $("body").on("click", ".edit-employee", function () {
-    id = $(this).parent("td").data("id");
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].id == id) {
-        var myModal = new bootstrap.Modal(document.getElementById("edit-employee"), {});
-        myModal.show();
-        $('#nome-edit').val(data[i].firstName);
-        $('#cognome-edit').val(data[i].lastName);
-
-        if (data[i].gender === "M") {
-          $('#edit-sesso-m').prop("checked", true);
-        } else {
-          $('#edit-sesso-f').prop("checked", true);
-        }
-
-        $('#data-nascita-edit').val(data[i].birthDate);
-        $('#data-assunzione-edit').val(data[i].hireDate);
-        break;
-      }
-    }
-  });
-
+            if (parseInt(localStorage.getItem("currentPage")) > (totalPages - 1)) {
+                nextPage = msg['_links']['next']['href'];
+            }
+            displayEmployeeList(); //mostro la lista degli impiegati
+            displayPagination(); //mostro la paginazione
+        });
+}
+//chiamata GET (per ricevere dal server l'impiegato richiesto)
+function getEmployeeData(id) {
+    $.ajax({
+        method: "GET",
+        url: `${defaultPath}/employees?id=${id}`,
+        dataType: "json",
+        contentType: "application/json"
+    })
+        .done(function (msg) {
+            employeeData.id = msg.id;
+            employeeData.firstName = msg.firstName;
+            employeeData.lastName = msg.lastName;
+            employeeData.gender = msg.gender;
+            employeeData.birthDate = msg.birthDate;
+            employeeData.hireDate = msg.hireDate;
+            setFormEmployeeData();
+        });
+}
+//chiamata POST (per creare un nuovo impiegato)
+function createEmployee() {
+    $.ajax({
+        method: "POST",
+        url: `${defaultPath}`,
+        data: JSON.stringify(employeeData)
+    })
+        .done(function () {
+            location.reload();
+        });
+}
+//Chiamata DELETE (per eliminare un impiegato)
+function deleteEmployee(id) {
+    $.ajax({
+        method: "DELETE",
+        url: `${defaultPath}?id=${id}`
+    })
+        .done(function () {
+            getData();
+            displayEmployeeList();
+        });
+}
+//Chiamata PUT (per modificare le informazioni di un dipendente)
+function editEmployeePUT() {
+    $.ajax({
+        method: "PUT",
+        url: `${defaultPath}/employees/${id}`,
+        data: JSON.stringify(employeeData)
+    })
+        .done( function(){
+            location.reload();
+        });
+}
   //modifica le informazioni di dipendente
   $("#edit-employee-form").submit(function (e) {
     e.preventDefault();
